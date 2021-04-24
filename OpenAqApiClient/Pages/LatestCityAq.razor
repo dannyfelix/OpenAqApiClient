@@ -1,0 +1,84 @@
+﻿@page "/LatestCityAq"
+@using OpenAqApiClient.Models
+@using OpenAqApiClient.Services
+
+@inject OpenAqService _openAqService;
+
+<h2>OpenAQ Air Quality - City</h2>
+<hr>
+
+
+<div class="col-12 row">
+    <label> Enter city: </label>
+    <input type="text" @bind="_input" />
+    <button @onclick="GetLatestByCity">Submit query</button>
+    <button @onclick="ClearQuery">Clear query</button>
+</div>
+<hr>
+
+
+@if (string.IsNullOrWhiteSpace(_errorString) == false)
+{
+    <div class="h2">@_errorString</div>
+}
+else if (_latest is null)
+{
+    <div class="h4">Waiting for input</div>
+}
+else
+{
+    <h3>Air quality readings in @_latest.Results[0].City</h3>
+    <table class="table table-hover table-borderless">
+        <thead class="thead-dark">
+            <tr>
+                <th>Location</th>
+                <th>Air Quality Readings</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in _latest.Results)
+        {
+            <tr>
+                <th>@item.Location</th>
+                @foreach (var m in item.Measurements)
+                {
+                    <td>
+                        @m.Value @m.Unit | Pollutant: <b>@m.Parameter</b> <br>
+                        Reading Taken: @m.LastUpdated.ToShortDateString()
+                    </td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+
+@code {
+    private LatestRoot _latest;    
+    string _errorString;
+    string _input;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
+    private async Task GetLatestByCity()
+    {
+        try
+        {
+            _latest = await _openAqService.GetLatestCity(_input);
+        }
+        catch (Exception ex)
+        {
+            _errorString = $"There was a problem retrieving the latest reading: {ex.Message}";
+        }
+    }
+
+    private async Task ClearQuery()
+    {
+        _latest = null;
+        await base.OnInitializedAsync();
+    }
+}
